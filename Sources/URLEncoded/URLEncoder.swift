@@ -1,7 +1,7 @@
 import InitMacro
 
-protocol Container {
-	var result: String { get }
+enum URLEncoderError: Error {
+	case unsupportedContainer
 }
 
 struct NotImplemented: Error, CustomStringConvertible {
@@ -21,30 +21,62 @@ public struct URLEncoder {
 	}
 }
 
+protocol TopEncoder: Encoder {
+	func add(_ value: some Encodable, key: some CodingKey, codingPath: [any CodingKey]) throws
+	func add(_ value: some Encodable, codingPath: [any CodingKey]) throws
+}
+extension TopEncoder {
+	func add(_ value: some Encodable, key: some CodingKey, codingPath: [any CodingKey]) throws {
+		try add(value, codingPath: codingPath + [key])
+	}
+}
+
 @Init
-class _URLEncoder: Encoder, Container {
+class _URLEncoder: Encoder, TopEncoder {
 	var codingPath: [any CodingKey] = []
 	var userInfo: [CodingUserInfoKey : Any] = [:]
 
-	var containers: [any Container] = []
+	var values: [String] = []
+	var result: String { values.joined(separator: "&") }
 
 	func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key> where Key : CodingKey {
-		let container = KeyedContainer<Key>(codingPath: codingPath)
-		containers.append(container)
-		return .init(container)
+		return .init(KeyedEncoder<Key>(encoder: self, codingPath: codingPath))
 	}
 
 	func unkeyedContainer() -> any UnkeyedEncodingContainer {
-		fatalError("unkeyedContainer")
+		UnkeyedEncoder(encoder: self, codingPath: codingPath)
 	}
 
 	func singleValueContainer() -> any SingleValueEncodingContainer {
-		let container = SingleValueContainer(codingPath: codingPath)
-		containers.append(container)
-		return container
+		return SingleValueEncoder(encoder: self, codingPath: codingPath)
 	}
 
-	var result: String {
-		containers.map(\.result).joined(separator: "&")
+	func add(_ value: some Encodable, codingPath: [any CodingKey]) throws {
+		if let value = try convert(value, codingPath: codingPath) {
+			let names = codingPath.map(\.stringValue)
+			let name = (names.first ?? "") + names.dropFirst().map { "[\($0)]" }.joined()
+			values.append("\(name)=\(value)")
+		} else {
+			let encoder = _URLEncoder(codingPath: codingPath)
+			try value.encode(to: encoder)
+			values.append(encoder.result)
+		}
+	}
+
+	func convert(_ value: some Encodable, codingPath: [any CodingKey]) throws -> String? {
+		if let number = value as? any BinaryInteger {
+			return number.description
+		}
+		if let number = value as? any BinaryFloatingPoint {
+			return "\(number)"
+		}
+		if let value = value as? String {
+			return value
+		}
+		if let value = value as? Bool {
+			return "\(value)"
+		}
+
+		return nil
 	}
 }
