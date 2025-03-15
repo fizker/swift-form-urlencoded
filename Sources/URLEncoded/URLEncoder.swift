@@ -1,11 +1,12 @@
-import InitMacro
+import Foundation
 
 enum URLEncoderError: Error {
 	case unsupportedContainer
 }
 
-@Init
 public struct URLEncoder {
+	public init() {}
+
 	public func encode<T: Encodable>(_ value: T) throws -> String {
 		let e = _URLEncoder()
 		try value.encode(to: e)
@@ -23,13 +24,35 @@ extension TopEncoder {
 	}
 }
 
-@Init
 class _URLEncoder: Encoder, TopEncoder {
 	var codingPath: [any CodingKey] = []
 	var userInfo: [CodingUserInfoKey : Any] = [:]
 
-	var values: [String] = []
-	var result: String { values.joined(separator: "&") }
+	init(codingPath: [any CodingKey] = [], userInfo: [CodingUserInfoKey : Any] = [:]) {
+		self.codingPath = codingPath
+		self.userInfo = userInfo
+	}
+
+	var values: [(key: [String], value: String?)] = []
+	var result: String {
+		var components = URLComponents()
+		var queryItems: [URLQueryItem] = []
+
+		func encode(_ value: String) -> String {
+			components.queryItems = [URLQueryItem(name: "", value: value)]
+			return (components.percentEncodedQuery?.dropFirst()).map(String.init) ?? value
+		}
+
+		for (names, value) in values {
+			let names = names.map(encode)
+			let name = (names.first ?? "") + names.dropFirst().map { "[\($0)]" }.joined()
+			let item = URLQueryItem(name: name, value: value.map(encode))
+			queryItems.append(item)
+		}
+
+		components.queryItems = queryItems
+		return components.query ?? ""
+	}
 
 	func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key> where Key : CodingKey {
 		return .init(KeyedEncoder<Key>(encoder: self, codingPath: codingPath))
@@ -45,17 +68,18 @@ class _URLEncoder: Encoder, TopEncoder {
 
 	func add(_ value: some Encodable, codingPath: [any CodingKey]) throws {
 		if let value = convert(value, codingPath: codingPath) {
-			let names = codingPath.map(\.stringValue)
-			let name = (names.first ?? "") + names.dropFirst().map { "[\($0)]" }.joined()
-			values.append("\(name)=\(value)")
+			values.append((codingPath.map(\.stringValue), value))
 		} else {
 			let encoder = _URLEncoder(codingPath: codingPath)
 			try value.encode(to: encoder)
-			values.append(encoder.result)
+			values.append(contentsOf: encoder.values)
 		}
 	}
 
 	func convert(_ value: some Encodable, codingPath: [any CodingKey]) -> String? {
+		if let value = value as? URL {
+			return value.absoluteString
+		}
 		if let number = value as? any Numeric {
 			return "\(number)"
 		}

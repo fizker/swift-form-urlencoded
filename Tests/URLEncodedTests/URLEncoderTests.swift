@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import URLEncoded
 
@@ -45,4 +46,16 @@ struct URLEncoderTests {
 
 		#expect("enum=foo" == actual)
 	}
+
+	@Test
+	func encode__valuesRequirePercentEncoding__encodesCorrectly() async throws {
+		let object = SingleLevelObject(string: "a&b=c+d", url: URL(string: "http://example.com/foo?bar=baz+fa&baz[1]=zapp")!)
+
+		let subject = URLEncoder()
+
+		let actual = try subject.encode(object)
+
+		#expect("string=a%26b%3Dc+d&url=http://example.com/foo?bar%3Dbaz+fa%26baz%255B1%255D%3Dzapp" == actual)
+	}
+
 }
