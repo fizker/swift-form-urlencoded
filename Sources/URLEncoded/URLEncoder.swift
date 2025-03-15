@@ -4,14 +4,6 @@ enum URLEncoderError: Error {
 	case unsupportedContainer
 }
 
-struct NotImplemented: Error, CustomStringConvertible {
-	var description: String
-
-	init(_ message: String) {
-		description = message
-	}
-}
-
 @Init
 public struct URLEncoder {
 	public func encode<T: Encodable>(_ value: T) throws -> String {
@@ -52,7 +44,7 @@ class _URLEncoder: Encoder, TopEncoder {
 	}
 
 	func add(_ value: some Encodable, codingPath: [any CodingKey]) throws {
-		if let value = try convert(value, codingPath: codingPath) {
+		if let value = convert(value, codingPath: codingPath) {
 			let names = codingPath.map(\.stringValue)
 			let name = (names.first ?? "") + names.dropFirst().map { "[\($0)]" }.joined()
 			values.append("\(name)=\(value)")
@@ -63,11 +55,8 @@ class _URLEncoder: Encoder, TopEncoder {
 		}
 	}
 
-	func convert(_ value: some Encodable, codingPath: [any CodingKey]) throws -> String? {
-		if let number = value as? any BinaryInteger {
-			return number.description
-		}
-		if let number = value as? any BinaryFloatingPoint {
+	func convert(_ value: some Encodable, codingPath: [any CodingKey]) -> String? {
+		if let number = value as? any Numeric {
 			return "\(number)"
 		}
 		if let value = value as? String {

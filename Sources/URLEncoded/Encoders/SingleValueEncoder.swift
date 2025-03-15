@@ -6,7 +6,7 @@ class SingleValueEncoder: SingleValueEncodingContainer {
 	let codingPath: [any CodingKey]
 
 	func encode(_ value: some Encodable) throws {
-		throw URLEncoderError.unsupportedContainer
+		try encoder.add(value, codingPath: codingPath)
 	}
 
 	func encodeNil() throws {

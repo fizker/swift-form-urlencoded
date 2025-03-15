@@ -1,10 +1,15 @@
+enum EnumValue: String, Codable {
+	case foo, bar
+}
+
 struct SingleLevelObject: Codable {
-	var a: String
-	var b: Int
+	var string: String?
+	var int: Int?
+	var `enum`: EnumValue?
 }
 
 struct MultiLevelObject: Codable {
-	var c: SingleLevelObject
+	var nested: SingleLevelObject
 }
 
 struct ObjectWithArray: Codable {

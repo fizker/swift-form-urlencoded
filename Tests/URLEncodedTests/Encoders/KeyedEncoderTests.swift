@@ -44,9 +44,9 @@ struct KeyedEncoderTests {
 		let encoder = _URLEncoder()
 		let subject = KeyedEncoder<CodingKeys>(encoder: encoder, codingPath: [])
 
-		let value = SingleLevelObject(a: "1", b: 2)
+		let value = SingleLevelObject(string: "1", int: 2)
 		try subject.encode(value, forKey: .foo)
 
-		#expect("foo[a]=1&foo[b]=2" == encoder.result)
+		#expect("foo[string]=1&foo[int]=2" == encoder.result)
 	}
 }
