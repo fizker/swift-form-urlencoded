@@ -18,13 +18,11 @@ let package = Package(
 		),
 	],
 	dependencies: [
-		.package(url: "https://github.com/fizker/swift-macro-init.git", branch: "main"),
 	],
 	targets: [
 		.target(
 			name: "URLEncoded",
 			dependencies: [
-				.product(name: "InitMacro", package: "swift-macro-init"),
 			]
 		),
 		.testTarget(

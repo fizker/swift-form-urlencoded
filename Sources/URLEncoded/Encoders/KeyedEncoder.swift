@@ -1,9 +1,11 @@
-import InitMacro
-
-@Init
 class KeyedEncoder<Key: CodingKey>: KeyedEncodingContainerProtocol {
 	let encoder: TopEncoder
 	let codingPath: [any CodingKey]
+
+	init(encoder: TopEncoder, codingPath: [any CodingKey]) {
+		self.encoder = encoder
+		self.codingPath = codingPath
+	}
 
 	func encodeNil(forKey key: Key) throws {
 	}

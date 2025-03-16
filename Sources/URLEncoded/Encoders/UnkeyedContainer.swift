@@ -1,7 +1,9 @@
-import InitMacro
-
-@Init
 class UnkeyedEncoder: UnkeyedEncodingContainer {
+	init(encoder: TopEncoder, codingPath: [any CodingKey]) {
+		self.encoder = encoder
+		self.codingPath = codingPath
+	}
+
 	let encoder: TopEncoder
 	let codingPath: [any CodingKey]
 
